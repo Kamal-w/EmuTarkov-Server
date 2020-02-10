@@ -89,12 +89,10 @@ function sendResponse(req, resp, body, sessionID) {
     let output = "";
 
     // get response
-    if (req.method === "POST") {
+    if (req.method === "POST" || req.method === "PUT") {
         output = router.getResponse(req, body, sessionID);
-    } else if (req.method === "PUT") {
-        output = router.getResponse(req, json.stringify(body), sessionID);
     } else {
-        output = router.getResponse(req, "{}", sessionID);
+        output = router.getResponse(req, "", sessionID);
     }
 
     if (output === "NOTIFY") {
@@ -160,6 +158,10 @@ class Server {
         this.version = "1.0.0";
     }
 
+    resetBuffer(sessionID) {
+        this.buffers[sessionID] = undefined;
+    }
+
     putInBuffer(sessionID, data, bufLength) {
         if (this.buffers[sessionID] === undefined || this.buffers[sessionID].allocated !== bufLength) {
             this.buffers[sessionID] = {
@@ -206,12 +208,13 @@ class Server {
     }
 
     handleRequest(req, resp) {
-        let IP = req.connection.remoteAddress.replace("::ffff:", "");
+        const IP = req.connection.remoteAddress.replace("::ffff:", "");
         const sessionID = parseInt(getCookies(req)['PHPSESSID']);
+
+        logger.logRequest("[" + sessionID + "][" + IP + "] " + req.url);
     
         // request without data
         if (req.method === "GET") {
-            logger.logRequest("[" + sessionID + "][" + IP + "] " + req.url);
             sendResponse(req, resp, null, sessionID);
         }
     
@@ -219,9 +222,7 @@ class Server {
         if (req.method === "POST") {
             req.on('data', function (data) {
                 zlib.inflate(data, function (err, body) {
-                    let jsonData = ((body !== null && body != "" && body != "{}") ? body.toString() : "{}");
-    
-                    logger.logRequest("[" + sessionID + "][" + IP + "] " + req.url + " -> " + jsonData, "cyan");
+                    let jsonData = ((body !== typeof "undefined" && body !== null && body !== "") ? body.toString() : '{}');
                     sendResponse(req, resp, jsonData, sessionID);
                 });
             });
@@ -229,25 +230,21 @@ class Server {
     
         // emulib responses
         if (req.method === "PUT") {
-            req.on('data', function (data) {
+            req.on('data', function(data) {
                 // receive data
                 if (req.headers.hasOwnProperty("expect")) {
-                    const requestLength = req.headers["content-length"] - 0;
-                    const sessionID = req.headers.sessionid - 0;
+                    const requestLength = parseInt(req.headers["content-length"]);
     
-                    if (!this.putInBuffer(sessionID, data, requestLength)) {
+                    if (!server.putInBuffer(parseInt(req.headers.sessionid), data, requestLength)) {
                         resp.writeContinue();
-                        return;
                     }
-    
-                    data = this.getFromBuffer(sessionID);
                 }
-    
-                // unpack data
+            }).on('end', function() {
+                let data = server.getFromBuffer(sessionID);
+                server.resetBuffer(sessionID);
+
                 zlib.inflate(data, function (err, body) {
-                    let jsonData = json.parse((body !== undefined) ? body.toString() : "{}");
-    
-                    logger.logRequest("[" + sessionID + "][" + IP + "] " + req.url + " -> " + jsonData);
+                    let jsonData = ((body !== typeof "undefined" && body !== null && body !== "") ? body.toString() : '{}');
                     sendResponse(req, resp, jsonData, sessionID);
                 });
             });
