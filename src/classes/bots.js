@@ -79,7 +79,7 @@ function generateBot(bot, role) {
 	}
 
 	// generate bot
-	node = (type === "bear" || type === "usec") ? filepaths.bots.pmc[type] : filepaths.bots.scav[type.toLowerCase()];
+	node = filepaths.bots[type.toLowerCase()];
 
 	bot.Info.Settings.Role = role;
 	bot.Info.Nickname = getRandomValue(node.names);
@@ -117,11 +117,11 @@ function generate(databots) {
 		}
 	}
 
-	return {"err": 0,"errmsg": null, "data": generatedBots};
+	return generatedBots;
 }
 
 function generatePlayerScav() {
-	let scavData = generate({"conditions":[{"Role":"playerScav","Limit":1,"Difficulty":"normal"}]}).data;
+	let scavData = generate({"conditions":[{"Role":"playerScav","Limit":1,"Difficulty":"normal"}]});
 
 	scavData[0].Info.Settings = {};
 	return scavData[0];

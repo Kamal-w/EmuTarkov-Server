@@ -102,7 +102,6 @@ function assort() {
     let dirList = utility.getDirList("db/assort/");
 
     for (let trader in dirList) {
-
         let assortName = dirList[trader];
         let assortFilePath = {"items":{}, "barter_scheme":{}, "loyal_level_items":{}};
         let inputDir = [
@@ -140,11 +139,11 @@ function weather() {
     genericFilepathCacher("weather", "db/weather");
 }
 
-function maps() {
-    let inputDir = utility.getDirList("db/maps/");
+function locations() {
+    let inputDir = utility.getDirList("db/locations/");
 
-    for (let mapName of inputDir) {
-        let dirName = "db/maps/" + mapName + "/";
+    for (let locationName of inputDir) {
+        let dirName = "db/locations/" + locationName + "/";
         let baseNode = {"base": dirName + "base.json", "entries": {}, "exits": {}, "waves": {}, "bosses": {}, "loot": {}};
         let subdirs = ["entries", "exits", "waves", "bosses", "loot"];
 
@@ -165,7 +164,7 @@ function maps() {
             baseNode[subdir] = subNode;
         }
 
-        filepaths.maps[mapName] = baseNode;
+        filepaths.locations[locationName] = baseNode;
     }
 }
 
@@ -175,20 +174,20 @@ function bots() {
     filepaths.bots.base = "db/bots/base.json";
     
     let inputDir = [
-        "db/bots/pmc/bear/",
-        "db/bots/pmc/usec/",
-        "db/bots/scav/assault/",
-        "db/bots/scav/bossbully/",
-        "db/bots/scav/bossgluhar/",
-        "db/bots/scav/bosskilla/",
-        "db/bots/scav/bosskojaniy/",
-        "db/bots/scav/followerbully/",
-        "db/bots/scav/followergluharassault/",
-        "db/bots/scav/followergluharscout/",
-        "db/bots/scav/followergluharsecurity/",
-        "db/bots/scav/followerkojaniy/",
-        "db/bots/scav/marksman/",
-        "db/bots/scav/pmcbot/"
+        "db/bots/bear/",
+        "db/bots/usec/",
+        "db/bots/assault/",
+        "db/bots/bossbully/",
+        "db/bots/bossgluhar/",
+        "db/bots/bosskilla/",
+        "db/bots/bosskojaniy/",
+        "db/bots/followerbully/",
+        "db/bots/followergluharassault/",
+        "db/bots/followergluharscout/",
+        "db/bots/followergluharsecurity/",
+        "db/bots/followerkojaniy/",
+        "db/bots/marksman/",
+        "db/bots/pmcbot/"
     ];
 
     let cacheDir = [
@@ -236,33 +235,33 @@ function bots() {
         }
         
         if (path == 0) {
-            filepaths.bots.pmc.bear = baseNode;
+            filepaths.bots.bear = baseNode;
         } else if (path == 1) {
-            filepaths.bots.pmc.usec = baseNode;
+            filepaths.bots.usec = baseNode;
         } else if (path == 2) {
-            filepaths.bots.scav.assault = baseNode;
+            filepaths.bots.assault = baseNode;
         } else if (path == 3) {
-            filepaths.bots.scav.bossbully = baseNode;
+            filepaths.bots.bossbully = baseNode;
         } else if (path == 4) {
-            filepaths.bots.scav.bossgluhar = baseNode;
+            filepaths.bots.bossgluhar = baseNode;
         } else if (path == 5) {
-            filepaths.bots.scav.bosskilla = baseNode;
+            filepaths.bots.bosskilla = baseNode;
         }  else if (path == 6) {
-            filepaths.bots.scav.bosskojaniy = baseNode;
+            filepaths.bots.bosskojaniy = baseNode;
         } else if (path == 7) {
-            filepaths.bots.scav.followerbully = baseNode;
+            filepaths.bots.followerbully = baseNode;
         } else if (path == 8) {
-            filepaths.bots.scav.followergluharassault = baseNode;
+            filepaths.bots.followergluharassault = baseNode;
         } else if (path == 9) {
-            filepaths.bots.scav.followergluharscout = baseNode;
+            filepaths.bots.followergluharscout = baseNode;
         } else if (path == 10) {
-            filepaths.bots.scav.followergluharsecurity = baseNode;
+            filepaths.bots.followergluharsecurity = baseNode;
         } else if (path == 11) {
-            filepaths.bots.scav.followerkojaniy = baseNode;
+            filepaths.bots.followerkojaniy = baseNode;
         } else if (path == 12) {
-            filepaths.bots.scav.marksman = baseNode;
+            filepaths.bots.marksman = baseNode;
         } else if (path == 13) {
-            filepaths.bots.scav.pmcbot = baseNode;
+            filepaths.bots.pmcbot = baseNode;
         }
     }
 }
@@ -458,7 +457,12 @@ function cache() {
     }
 }
 
-function routeDatabase() {
+function loadorder() {
+    logger.logInfo("Routing: loadorder");
+    json.write("user/cache/loadorder.json", json.parse(json.read("src/loadorder.json")));
+}
+
+function route() {
     flush();
     items();
     quests();
@@ -472,29 +476,43 @@ function routeDatabase() {
     templates();
     assort();
     weather();
-    maps();
+    locations();
     bots();
     locales();
     images();
     profile();
     others();
     cache();
+    loadorder();
 }
 
 function all() {
-    if (mods.isRebuildRequired()) {
-        logger.logWarning("Modlist mismatch");
-        settings.server.rebuild = true;
+    mods.detectMissing();
+
+    /* check if loadorder is missing */
+    if (!fs.existsSync("user/cache/loadorder.json")) {
+        logger.logWarning("Loadorder mismatch");
+        settings.server.rebuildCache = true;
     }
 
-    if (settings.server.rebuild || !fs.existsSync("user/cache/filepaths.json")) {
-        logger.logWarning("Force rebuilding cache");
-        routeDatabase();
-        mods.load();
-        dump();
-    } else {
-        filepaths = json.parse(json.read("user/cache/filepaths.json"));
+    /* check if filepaths need rebuid */
+    if (mods.isRebuildRequired()) {
+        logger.logWarning("Modlist mismatch");
+        settings.server.rebuildCache = true;
     }
+
+    /* rebuild filepaths */
+    if (!fs.existsSync("user/cache/filepaths.json" || settings.server.rebuild)) {
+        logger.logWarning("Force rebuilding cache");
+        
+        route();
+        mods.load();
+
+        dump();
+        return;
+    }
+
+    filepaths = json.parse(json.read("user/cache/filepaths.json"));
 }
 
 module.exports.all = all;

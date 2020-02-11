@@ -4,8 +4,16 @@ class Interpreter {
     constructor() {
         this.initializeCore();
         this.initializeExceptions();
+        this.initializeLoadOrder();
+        this.initializeData();
         this.initializeClasses();
         this.initializeResponses();
+        this.initializeCallbacks();
+    }
+
+    /* load loadorder from cache */
+    initializeLoadOrder() {
+        this.loadorder = json.parse(json.read("user/cache/loadorder.json"));
     }
 
     initializeCore() {
@@ -17,7 +25,6 @@ class Interpreter {
         /* setup core files */
         global.settings = json.parse(json.read("user/server.config.json"));
         global.filepaths = json.parse(json.read("db/cache/filepaths.json"));
-        this.loadorder = json.parse(json.read("src/loadorder.json"));
 
         /* setup routes and cache */
         const route = require('./caching/_route.js');
@@ -27,25 +34,31 @@ class Interpreter {
 
         /* core logic */
         global.router = (require('./server/router.js').router);
-        global.saveHandler = require('./server/saveHandler.js');
-        global.header_f = require('./server/sendHeader.js');
-        global.events_f = require('./server/events.js');
-        global.notifier_f = require('./server/notifier.js');
+        global.events = require('./server/events.js');
         global.server = (require('./server/server.js').server);
+        global.watermark = require('./server/watermark.js');
+    }
+
+    /* load exception handler */
+    initializeExceptions() {
+        process.on('uncaughtException', (error, promise) => {
+            logger.logError("Server:" + server.getVersion());
+            logger.logError("Trace:");
+            logger.logData(error);
+        });
+    }
+
+    /* TODO: REFACTOR THIS */
+    initializeData() {
+        global.items = json.parse(json.read(filepaths.user.cache.items));
+        global.globals = json.parse(json.read(filepaths.globals));
+        global.customizationOutfits = json.parse(json.read(filepaths.user.cache.customization_outfits));
+        global.customizationOffers = json.parse(json.read(filepaths.user.cache.customization_offers));
+        global.templates = json.parse(json.read(filepaths.user.cache.templates));
     }
 
     /* load classes */
     initializeClasses() {
-        /* global data */
-        /* TODO: REFACTOR THIS */
-        global.items = json.parse(json.read(filepaths.user.cache.items));
-        global.quests = json.parse(json.read(filepaths.user.cache.quests));
-        global.globalSettings = json.parse(json.read(filepaths.globals));
-        global.customizationOutfits = json.parse(json.read(filepaths.user.cache.customization_outfits));
-        global.customizationOffers = json.parse(json.read(filepaths.user.cache.customization_offers));
-        global.templates = json.parse(json.read(filepaths.user.cache.templates));
-
-        /* external logic */
         for (let name in this.loadorder.classes) {
             logger.logInfo("Interpreter: class " + name);
             global[name] = require("../" + this.loadorder.classes[name]);
@@ -60,12 +73,12 @@ class Interpreter {
         }
     }
 
-    /* load exception handler */
-    initializeExceptions() {
-        process.on('uncaughtException', (error, promise) => {
-            logger.logError("Trace:");
-            logger.logData(error);
-        });
+    /* load callbacks */
+    initializeCallbacks() {
+        for (let name in this.loadorder.callbacks) {
+            logger.logInfo("Interpreter: callback " + name);
+            require("../" + this.loadorder.callbacks[name]);
+        }
     }
 }
 

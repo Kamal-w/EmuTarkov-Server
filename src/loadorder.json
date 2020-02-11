@@ -1,13 +1,15 @@
 {
     "classes": {
+        "saveHandler": "src/classes/savehandler.js",
         "item_f": "src/classes/item.js",
         "locale_f": "src/classes/locale.js",
-        "keepAlive_f": "src/classes/keepAlive.js",
+        "keepAlive_f": "src/classes/keepalive.js",
         "health_f": "src/classes/health.js",
         "offraid_f": "src/classes/offraid.js",
         "dialogue_f": "src/classes/dialogue.js",
         "account_f": "src/classes/account.js",
         "profile_f": "src/classes/profile.js",
+        "notifier_f": "src/classes/notifier.js",
         "bots_f": "src/classes/bots.js",
         "itm_hf": "src/classes/helpfunc.js",
         "quest_f": "src/classes/quest.js",
@@ -24,7 +26,7 @@
         "trader_f": "src/classes/trader.js",
         "ragfair_f": "src/classes/ragfair.js",
         "weather_f": "src/classes/weather.js",
-        "map_f": "src/classes/map.js"
+        "location_f": "src/classes/location.js"
     },
     "responses": {
         "bots": "src/responses/bots.js",
@@ -38,7 +40,7 @@
         "keepalive": "src/responses/keepalive.js",
         "launcher": "src/responses/launcher.js",
         "locale": "src/responses/locale.js",
-        "mape": "src/responses/map.js",
+        "location": "src/responses/location.js",
         "move": "src/responses/move.js",
         "note": "src/responses/note.js",
         "notifier": "src/responses/notifier.js",
@@ -54,5 +56,11 @@
         "userbuilds": "src/responses/userbuilds.js",
         "weather": "src/responses/weather.js",
         "wishlist": "src/responses/wishlist.js"
+    },
+    "callbacks": {
+        "notifier": "src/callbacks/notifier.js",
+        "savehandler": "src/callbacks/savehandler.js",
+        "image": "src/callbacks/image.js",
+        "location": "src/callbacks/location.js"
     }
 }
