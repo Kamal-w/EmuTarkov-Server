@@ -6,8 +6,8 @@
 	"Name": "Factory",
 	"Description": "The industrial estate and facilities of the chemical plant No.16 that were rented out illegally to the TerraGroup company. ",
 	"Scene": {
-		"path": "maps/factory_night_preset.bundle",
-		"rcid": "factory_night.scenespreset.asset"
+	  "path": "maps/factory_night_preset.bundle",
+	  "rcid": "factory_night.scenespreset.asset"
 	},
 	"Area": 0.9,
 	"RequiredPlayerLevel": 0,
@@ -19,8 +19,8 @@
 	"exit_access_time": 60,
 	"exit_time": 1,
 	"Preview": {
-		"path": "",
-		"rcid": ""
+	  "path": "",
+	  "rcid": ""
 	},
 	"IconX": 318,
 	"IconY": 359,
@@ -62,14 +62,14 @@
 	"AccessKeys": [],
 	"MinMaxBots": [],
 	"BotLocationModifier": {
-		"AccuracySpeed": 0.8,
-		"Scattering": 0.75,
-		"GainSight": 0.8,
-		"MarksmanAccuratyCoef": 1,
-		"VisibleDistance": 0.6,
-		"MagnetPower": 15,
-		"DistToSleep": 120,
-		"DistToActivate": 100
+	  "AccuracySpeed": 0.8,
+	  "Scattering": 0.75,
+	  "GainSight": 0.8,
+	  "MarksmanAccuratyCoef": 1,
+	  "VisibleDistance": 0.6,
+	  "MagnetPower": 15,
+	  "DistToSleep": 120,
+	  "DistToActivate": 100
 	},
 	"exits": [],
 	"DisabledForScav": false,
@@ -78,62 +78,62 @@
 	"Loot": [],
 	"SpawnAreas": [],
 	"Banners": [
-		{
-			"id": "5464e0404bdc2d2a708b4567",
-			"pic": {
-				"path": "CONTENT/banners/banner_usec.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5464e0454bdc2d06708b4567",
-			"pic": {
-				"path": "CONTENT/banners/banner_bear.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5803a58524597710ca36fcb2",
-			"pic": {
-				"path": "CONTENT/banners/banner_terragroup.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807bfe124597742a92e0a4c",
-			"pic": {
-				"path": "CONTENT/banners/norvinskzone.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807c3f124597746bf2db2ce",
-			"pic": {
-				"path": "CONTENT/banners/banner_scav.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807be8924597742c603fa19",
-			"pic": {
-				"path": "CONTENT/banners/banner_tarkov.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5805f617245977100b2c1f41",
-			"pic": {
-				"path": "CONTENT/banners/tglabs.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5c1b857086f77465f465faa4",
-			"pic": {
-				"path": "CONTENT/banners/banner_scavraider.jpg",
-				"rcid": ""
-			}
+	  {
+		"id": "5464e0404bdc2d2a708b4567",
+		"pic": {
+		  "path": "CONTENT/banners/banner_usec.jpg",
+		  "rcid": ""
 		}
+	  },
+	  {
+		"id": "5464e0454bdc2d06708b4567",
+		"pic": {
+		  "path": "CONTENT/banners/banner_bear.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5803a58524597710ca36fcb2",
+		"pic": {
+		  "path": "CONTENT/banners/banner_terragroup.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807bfe124597742a92e0a4c",
+		"pic": {
+		  "path": "CONTENT/banners/norvinskzone.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807c3f124597746bf2db2ce",
+		"pic": {
+		  "path": "CONTENT/banners/banner_scav.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807be8924597742c603fa19",
+		"pic": {
+		  "path": "CONTENT/banners/banner_tarkov.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5805f617245977100b2c1f41",
+		"pic": {
+		  "path": "CONTENT/banners/tglabs.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5c1b857086f77465f465faa4",
+		"pic": {
+		  "path": "CONTENT/banners/banner_scavraider.jpg",
+		  "rcid": ""
+		}
+	  }
 	],
 	"BossLocationSpawn": []
-}
+  }

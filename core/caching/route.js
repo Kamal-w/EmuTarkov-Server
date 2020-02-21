@@ -1,459 +1,227 @@
 "use strict";
 
 const fs = require('fs');
-const mods = require('./mods.js');
+
+function getModFilepath(mod) {
+    return "user/mods/" + mod.author + "-" + mod.name + "-" + mod.version + "/";
+}
+
+function scanRecursiveMod(filepath, baseNode, modNode) {
+    if (typeof modNode === "object") {
+        for (let node in modNode) {
+            baseNode[node] = scanRecursiveMod(filepath, baseNode[node], modNode[node]);
+        }
+    }
+
+    if (typeof modNode === "string") {
+        baseNode = filepath + modNode;
+    }
+
+    return baseNode;
+}
+
+function loadMod(mod, filepath) {
+    logger.logInfo("Loading mod " + mod.author + "-" + mod.name + "-" + mod.version);
+
+    let loadorder = json.parse(json.read("user/cache/loadorder.json"));
+
+    db = scanRecursiveMod(filepath, db, mod.db);
+    loadorder = scanRecursiveMod(filepath, loadorder, mod.src);
+
+    json.write("user/cache/loadorder.json", loadorder);
+}
+
+function detectChangedMods() {
+    let changed = false;
+
+    for (let mod of settings.mods.list) {
+        if (!fs.existsSync(getModFilepath(mod) + "mod.config.json")) {
+            changed = true;
+            break;
+        }
+
+        let config = json.parse(json.read(getModFilepath(mod) + "mod.config.json"));
+
+        if (mod.name !== config.name || mod.author !== config.author || mod.version !== config.version) {
+            changed = true;
+            break;
+        }
+    }
+
+    if (changed) {
+        settings.mods.list = [];
+    }
+
+    return changed;
+}
+
+function detectMissingMods() {
+    if (!fs.existsSync("user/mods/")) {
+        return;
+    }
+
+    let dir = "user/mods/";
+    let mods = utility.getDirList(dir);
+
+    for (let mod of mods) {
+        /* check if config exists */
+        if (!fs.existsSync(dir + mod + "/mod.config.json")) {
+            logger.logError("Mod " + mod + " is missing mod.config.json");
+            logger.logError("Forcing server shutdown...");
+            process.exit(1);
+        }
+
+        let config = json.parse(json.read(dir + mod + "/mod.config.json"));
+        let found = false;
+
+        /* check if mod is already in the list */
+        for (let installed of settings.mods.list) {
+            if (installed.name === config.name) {
+                logger.logWarning("Mod " + mod + " has already been added; skipping mod");
+                found = true;
+                break;
+            }
+        }
+
+        /* add mod to the list */
+        if (!found) {
+            logger.logWarning("Mod " + mod + " not installed, adding it to the modlist");
+            settings.mods.list.push({"name": config.name, "author": config.author, "version": config.version, "enabled": true});
+            settings.server.rebuildCache = true;
+            json.write("user/server.config.json", settings);
+        }
+    }
+}
+
+function isRebuildRequired() {
+    if (!fs.existsSync("user/cache/mods.json")) {
+        return true;
+    }
+
+    let modlist = settings.mods.list;
+    let cachedlist = json.parse(json.read("user/cache/mods.json"));
+
+    if (modlist.length !== cachedlist.length) {
+        return true;
+    }
+
+    for (let mod in modlist) {
+        /* check against cached list */
+        if (modlist[mod].name !== cachedlist[mod].name
+        || modlist[mod].author !== cachedlist[mod].author
+        || modlist[mod].version !== cachedlist[mod].version
+        || modlist[mod].enabled !== cachedlist[mod].enabled) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function loadAllMods() {
+    let modList = settings.mods.list;
+
+    for (let element of modList) {
+        // skip mod
+        if (!element.enabled) {
+            logger.logWarning("Skipping mod " + element.author + "-" + element.name + "-" + element.version);
+            continue;
+        }
+
+        // apply mod
+        let filepath = getModFilepath(element);
+        let mod = json.parse(json.read(filepath + "mod.config.json"));
+        loadMod(mod, filepath);
+    }
+}
 
 function flush() {
-    filepaths = json.parse(json.read("db/cache/filepaths.json"));
+    db = {};
+    res = {};
 }
 
 function dump() {
-    json.write("user/cache/filepaths.json", filepaths);
+    json.write("user/cache/db.json", db);
+    json.write("user/cache/res.json", res);
 }
 
-function genericFilepathCacher(type, basepath) {
-    logger.logInfo("Routing: " + basepath + "/");
+function scanRecursiveRoute(filepath) {
+    let baseNode = {};
+    let directories = utility.getDirList(filepath);
+    let files = fs.readdirSync(filepath);
 
-    let inputDir = basepath + "/";
-    let inputFiles = fs.readdirSync(inputDir);
-    
-    for (let file in inputFiles) {
-        let filePath = inputDir + inputFiles[file];
-        let fileName = inputFiles[file].replace(".json", "");
-
-        switch (type) {
-            case "items": filepaths.items[fileName] = filePath; break;
-            case "quests": filepaths.quests[fileName] = filePath; break;
-            case "traders": filepaths.traders[fileName] = filePath; break;
-            case "dialogues": filepaths.dialogues[fileName] = filePath; break;
-            case "customOutfits": filepaths.customization.outfits[fileName] = filePath; break;
-            case "customOffers": filepaths.customization.offers[fileName] = filePath; break;
-            case "hideoutAreas": filepaths.hideout.areas[fileName] = filePath; break;
-            case "hideoutProd": filepaths.hideout.production[fileName] = filePath; break;
-            case "hideoutScav": filepaths.hideout.scavcase[fileName] = filePath; break;
-            case "weather": filepaths.weather[fileName] = filePath; break;
-            case "userCache": filepaths.user.cache[fileName] = filePath; break;
-            case "profileEditions": filepaths.profile.character[fileName] = filePath; break;
-        }
-    }
-}
-
-function items() {
-    genericFilepathCacher("items", "db/items");
-}
-
-function quests() {
-    genericFilepathCacher("quests", "db/quests");
-}
-
-function traders() {
-    genericFilepathCacher("traders", "db/traders");
-}
-
-function dialogues() {
-    genericFilepathCacher("dialogues", "db/dialogues");
-}
-
-function customizationOutfits() {
-    genericFilepathCacher("customOutfits", "db/customization/outfits");
-}
-
-function customizationOffers() {
-    genericFilepathCacher("customOffers", "db/customization/offers");
-}
-
-function hideoutAreas() {
-    genericFilepathCacher("hideoutAreas", "db/hideout/areas");
-}
-
-function hideoutProduction() {
-    genericFilepathCacher("hideoutProd", "db/hideout/production");
-}
-
-function hideoutScavcase() {
-    genericFilepathCacher("hideoutScav", "db/hideout/scavcase");
-}
-
-function templates() {
-    logger.logInfo("Routing: db/templates/");
-
-    let inputDir = [
-        "db/templates/categories/",
-        "db/templates/items/"
-    ];
-
-    for (let path in inputDir) {
-        let inputFiles = fs.readdirSync(inputDir[path]);
-
-        for (let file in inputFiles) {
-            let filePath = inputDir[path] + inputFiles[file];
-            let fileName = inputFiles[file].replace(".json", "");
-
-            if (path == 0) {
-                filepaths.templates.categories[fileName] = filePath;
-            } else {
-                filepaths.templates.items[fileName] = filePath;
+    // remove all directories from files
+    for (let directory of directories) {
+        for (let file in files) {
+            if (files[file] === directory) {
+                files.splice(file, 1);
             }
         }
     }
-}
 
-function assort() {
-    let dirList = utility.getDirList("db/assort/");
-
-    for (let trader in dirList) {
-        let assortName = dirList[trader];
-        let assortFilePath = {"items":{}, "barter_scheme":{}, "loyal_level_items":{}};
-        let inputDir = [
-            "db/assort/" + assortName + "/items/",
-            "db/assort/" + assortName + "/barter/",
-            "db/assort/" + assortName + "/level/"
-        ];
-
-        logger.logInfo("Routing: db/assort/" + assortName + "/");
-
-        for (let path in inputDir) {
-            let inputFiles = fs.readdirSync(inputDir[path]);
-
-            for (let file in inputFiles) {
-                let filePath = inputDir[path] + inputFiles[file];
-                let fileName = inputFiles[file].replace(".json", "");
-                let fileData = json.parse(json.read(filePath));
-
-                if (path == 0) {
-                    assortFilePath.items[fileData._id] = filePath;
-                } else if (path == 1) {
-                    assortFilePath.barter_scheme[fileName] = filePath;
-                } else if (path == 2) {
-                    assortFilePath.loyal_level_items[fileName] = filePath;
-                }
-            }
-        }
-
-        filepaths.assort[assortName] = assortFilePath;
-        filepaths.user.profiles.assort[assortName] = "user/profiles/__REPLACEME__/assort/" + assortName + ".json"
+    // make sure to remove the file extention
+    for (let node in files) {
+        let fileName = files[node].split('.').slice(0, -1).join('.');
+        baseNode[fileName] = filepath + files[node];
     }
-}
 
-function weather() {
-    genericFilepathCacher("weather", "db/weather");
-}
-
-function locations() {
-    let inputDir = utility.getDirList("db/locations/");
-
-    for (let locationName of inputDir) {
-        let dirName = "db/locations/" + locationName + "/";
-        let baseNode = {"base": dirName + "base.json", "entries": {}, "exits": {}, "waves": {}, "bosses": {}, "loot": {}};
-        let subdirs = ["entries", "exits", "waves", "bosses", "loot"];
-
-        logger.logInfo("Routing: " + dirName);
-
-        // get files from folder
-        for (let subdir of subdirs) {
-            let inputFiles = (fs.existsSync(dirName + subdir + "/")) ? fs.readdirSync(dirName + subdir + "/") : [];
-            let subNode = baseNode[subdir];
-
-            for (let file in inputFiles) {
-                let filePath = dirName + subdir + "/" + inputFiles[file];
-                let fileName = inputFiles[file].replace(".json", "");
-
-                subNode[fileName] = filePath;
-            }
-
-            baseNode[subdir] = subNode;
-        }
-
-        filepaths.locations[locationName] = baseNode;
+    // deep tree search
+    for (let node of directories) {
+        baseNode[node] = scanRecursiveRoute(filepath + node + "/");
     }
+
+    return baseNode;
 }
 
-function bots() {
-    logger.logInfo("Routing: bots");
-    
-    filepaths.bots.base = "db/bots/base.json";
-    
-    let inputDir = [
-        "db/bots/bear/",
-        "db/bots/usec/",
-        "db/bots/assault/",
-        "db/bots/bossbully/",
-        "db/bots/bossgluhar/",
-        "db/bots/bosskilla/",
-        "db/bots/bosskojaniy/",
-        "db/bots/followerbully/",
-        "db/bots/followergluharassault/",
-        "db/bots/followergluharscout/",
-        "db/bots/followergluharsecurity/",
-        "db/bots/followerkojaniy/",
-        "db/bots/marksman/",
-        "db/bots/pmcbot/"
-    ];
-
-    let cacheDir = [
-        "appearance/body/",
-        "appearance/head/",
-        "appearance/hands/",
-        "appearance/feet/",
-        "appearance/voice/",
-        "health/",
-        "inventory/",
-        "experience/",
-        "names/"
-    ];
-
-    for (let path in inputDir) {
-        let baseNode = json.parse(json.read("db/cache/bots.json"));
-
-        for (let item in cacheDir) {
-            let inputFiles = fs.readdirSync(inputDir[path] + cacheDir[item]);
-
-            for (let file in inputFiles) {
-                let filePath = inputDir[path] + cacheDir[item] + inputFiles[file];
-                let fileName = inputFiles[file].replace(".json", "");
-
-                if (item == 0) {
-                    baseNode.appearance.body[fileName] = filePath;
-                } else if (item == 1) {
-                    baseNode.appearance.head[fileName] = filePath;
-                } else if (item == 2) {
-                    baseNode.appearance.hands[fileName] = filePath;
-                } else if (item == 3) {
-                    baseNode.appearance.feet[fileName] = filePath;
-                } else if (item == 4) {
-                    baseNode.appearance.voice[fileName] = filePath;
-                } else if (item == 5) {
-                    baseNode.health[fileName] = filePath;
-                } else if (item == 6) {
-                    baseNode.inventory[fileName] = filePath;
-                } else if (item == 7) {
-                    baseNode.experience[fileName] = filePath;
-                } else if (item == 8) {
-                    baseNode.names[fileName] = filePath;
-                }
-            }
-        }
-        
-        if (path == 0) {
-            filepaths.bots.bear = baseNode;
-        } else if (path == 1) {
-            filepaths.bots.usec = baseNode;
-        } else if (path == 2) {
-            filepaths.bots.assault = baseNode;
-        } else if (path == 3) {
-            filepaths.bots.bossbully = baseNode;
-        } else if (path == 4) {
-            filepaths.bots.bossgluhar = baseNode;
-        } else if (path == 5) {
-            filepaths.bots.bosskilla = baseNode;
-        }  else if (path == 6) {
-            filepaths.bots.bosskojaniy = baseNode;
-        } else if (path == 7) {
-            filepaths.bots.followerbully = baseNode;
-        } else if (path == 8) {
-            filepaths.bots.followergluharassault = baseNode;
-        } else if (path == 9) {
-            filepaths.bots.followergluharscout = baseNode;
-        } else if (path == 10) {
-            filepaths.bots.followergluharsecurity = baseNode;
-        } else if (path == 11) {
-            filepaths.bots.followerkojaniy = baseNode;
-        } else if (path == 12) {
-            filepaths.bots.marksman = baseNode;
-        } else if (path == 13) {
-            filepaths.bots.pmcbot = baseNode;
-        }
-    }
-}
-
-function images() {
-    logger.logInfo("Routing: images");
-
-    let inputDir = [
-        "res/banners/",
-        "res/handbook/",
-        "res/hideout/",
-        "res/quest/",
-        "res/trader/",
-    ];
-
-    for (let path in inputDir) {
-        let inputFiles = fs.readdirSync(inputDir[path]);
-        
-        for (let file in inputFiles) {
-            let filePath = inputDir[path] + inputFiles[file];
-            let fileName = inputFiles[file].replace(".png", "").replace(".jpg", "");
-
-            if (path == 0) {
-                filepaths.images.banners[fileName] = filePath;
-            } else if (path == 1) {
-                filepaths.images.handbook[fileName] = filePath;
-            } else if (path == 2) {
-                filepaths.images.hideout[fileName] = filePath;
-            } else if (path == 3) {
-                filepaths.images.quest[fileName] = filePath;
-            } else if (path == 4) {
-                filepaths.images.trader[fileName] = filePath;
-            }
-        }
-    }
-}
-
-function locales() {
-    logger.logInfo("Routing: locales");
-    
-    let inputDir = [
-        "db/locales/en/",
-        "db/locales/fr/",
-        "db/locales/ge/",
-        "db/locales/ru/",
-    ];
-
-    let cacheDir = [
-        "mail/",
-        "quest/",
-        "preset/",
-        "handbook/",
-        "season/",
-        "templates/",
-        "locations/",
-        "banners/",
-        "trading/"
-    ];
-
-    for (let path in inputDir) {
-        let baseNode = json.parse(json.read("db/cache/locale.json"));
-
-        delete baseNode.data.enum;
-        baseNode.data.menu = inputDir[path] + "menu.json";
-        baseNode.data.interface = inputDir[path] + "interface.json";
-        baseNode.data.error = inputDir[path] + "error.json";
-
-        for (let item in cacheDir) {
-            let inputFiles = fs.readdirSync(inputDir[path] + cacheDir[item]);
-
-            for (let file in inputFiles) {
-                let filePath = inputDir[path] + cacheDir[item] + inputFiles[file];
-                let fileName = inputFiles[file].replace(".json", "");
-
-                if (item == 0) {
-                    baseNode.data.mail[fileName] = filePath;
-                } else if (item == 1) {
-                    baseNode.data.quest[fileName] = filePath;
-                } else if (item == 2) {
-                    baseNode.data.preset[fileName] = filePath;
-                } else if (item == 3) {
-                    baseNode.data.handbook[fileName] = filePath;
-                } else if (item == 4) {
-                    baseNode.data.season[fileName] = filePath;
-                } else if (item == 5) {
-                    baseNode.data.templates[fileName] = filePath;
-                } else if (item == 6) {
-                    baseNode.data.locations[fileName] = filePath;
-                } else if (item == 7) {
-                    baseNode.data.banners[fileName] = filePath;
-                } else if (item == 8) {
-                    baseNode.data.trading[fileName] = filePath;
-                }
-            }
-        }
-        
-        if (path == 0) {
-            baseNode.data.name = "db/locales/en/en.json";
-            filepaths.locales.en = baseNode.data;
-            filepaths.user.cache["locale_en"] = "user/cache/locale_en.json";
-        } else if (path == 1) {
-            baseNode.data.name = "db/locales/fr/fr.json";
-            filepaths.locales.fr = baseNode.data;
-            filepaths.user.cache["locale_fr"] = "user/cache/locale_fr.json";
-        } else if (path == 2) {
-            baseNode.data.name = "db/locales/ge/ge.json";
-            filepaths.locales.ge = baseNode.data;
-            filepaths.user.cache["locale_ge"] = "user/cache/locale_ge.json";
-        } else if (path == 3) {
-            baseNode.data.name = "db/locales/ru/ru.json";
-            filepaths.locales.ru = baseNode.data;
-            filepaths.user.cache["locale_ru"] = "user/cache/locale_ru.json";
-        }
-    }
-}
-
-function images() {
-    logger.logInfo("Routing: images");
-
-    let inputDir = [
-        "res/banners/",
-        "res/handbook/",
-        "res/hideout/",
-        "res/quest/",
-        "res/trader/",
-    ];
-
-    for (let path in inputDir) {
-        let inputFiles = fs.readdirSync(inputDir[path]);
-        
-        for (let file in inputFiles) {
-            let filePath = inputDir[path] + inputFiles[file];
-            let fileName = inputFiles[file].replace(".png", "").replace(".jpg", "");
-
-            if (path == 0) {
-                filepaths.images.banners[fileName] = filePath;
-            } else if (path == 1) {
-                filepaths.images.handbook[fileName] = filePath;
-            } else if (path == 2) {
-                filepaths.images.hideout[fileName] = filePath;
-            } else if (path == 3) {
-                filepaths.images.quest[fileName] = filePath;
-            } else if (path == 4) {
-                filepaths.images.trader[fileName] = filePath;
-            }
-        }
-    }
-}
-
-function profile() {
-    logger.logInfo("Routing: profile");
-    filepaths.profile.storage = "db/profile/storage.json";
-    filepaths.profile.userbuilds = "db/profile/userbuilds.json";
-    genericFilepathCacher("profileEditions", "db/profile/character");
+function routeAll() {
+    db = scanRecursiveRoute("db/");
+    res = scanRecursiveRoute("res/");
 }
 
 function others() {
-    logger.logInfo("Routing: others");
+    db.globals = "db/globals.json";
+    db.hideout.settings = "db/hideout/settings.json";
 
-    filepaths.user.profiles.list = "user/profiles/list.json";
-    filepaths.user.profiles.character = "user/profiles/__REPLACEME__/character.json";
-    filepaths.user.profiles.scav = "user/profiles/__REPLACEME__/scav.json";
-    filepaths.user.profiles.dialogue = "user/profiles/__REPLACEME__/dialogue.json";
-    filepaths.user.profiles.storage = "user/profiles/__REPLACEME__/storage.json";
-    filepaths.user.profiles.userbuilds = "user/profiles/__REPLACEME__/userbuilds.json";
-    filepaths.user.profiles.assort["579dc571d53a0658a154fbec"] = "user/profiles/__REPLACEME__/assort/579dc571d53a0658a154fbec.json";
-    filepaths.user.config = "user/server.config.json";
-    filepaths.user.events_schedule = "user/events/schedule.json";
-    filepaths.globals = "db/globals.json";
-    filepaths.hideout.settings = "db/hideout/settings.json";
-    filepaths.ragfair.offer = "db/ragfair/offer.json";
-    filepaths.ragfair.search = "db/ragfair/search.json";
-}
+    db.ragfair = {
+        "offer": "db/ragfair/offer.json",
+        "search": "db/ragfair/search.json"
+    }
 
-function cache() {
-    let assortList = utility.getDirList("db/assort/");
+    db.user = {
+        "config": "user/server.config.json",
+        "events_schedule": "user/events/schedule.json",
+        "profiles": {
+            "list": "user/profiles/list.json",
+            "character": "user/profiles/__REPLACEME__/character.json",
+            "dialogue": "user/profiles/__REPLACEME__/dialogue.json",
+            "storage": "user/profiles/__REPLACEME__/storage.json",
+            "userbuilds": "user/profiles/__REPLACEME__/userbuilds.json"
+        },
+        "cache": {
+            "items": "user/cache/items.json",
+            "quests": "user/cache/quests.json",
+            "locations": "user/cache/locations.json",
+            "languages": "user/cache/languages.json",
+            "customization": "user/cache/customization.json",
+            "hideout_areas": "user/cache/hideout_areas.json",
+            "hideout_production": "user/cache/hideout_production.json",
+            "hideout_scavcase": "user/cache/hideout_scavcase.json",
+            "weather": "user/cache/weather.json",
+            "templates": "user/cache/templates.json",
+            "mods": "user/cache/mods.json"
+        }
+    };
 
-    filepaths.user.cache.items = "user/cache/items.json";
-    filepaths.user.cache.quests = "user/cache/quests.json";
-    filepaths.user.cache.locations = "user/cache/locations.json";
-    filepaths.user.cache.languages = "user/cache/languages.json";
-    filepaths.user.cache.customization_outfits = "user/cache/customization_outfits.json";
-    filepaths.user.cache.customization_offers = "user/cache/customization_offers.json";
-    filepaths.user.cache.hideout_areas = "user/cache/hideout_areas.json";
-    filepaths.user.cache.hideout_production = "user/cache/hideout_production.json";
-    filepaths.user.cache.hideout_scavcase = "user/cache/hideout_scavcase.json";
-    filepaths.user.cache.weather = "user/cache/weather.json";
-    filepaths.user.cache.templates = "user/cache/templates.json";
-    filepaths.user.cache.mods = "user/cache/mods.json";
+    for (let trader of utility.getDirList("db/assort/")) {
+        db.user.cache["assort_" + trader] = "user/cache/assort_" + trader + ".json";
 
-    for (let assort in assortList) {
-        filepaths.user.cache["assort_" + assortList[assort]] = "user/cache/assort_" + assortList[assort] + ".json";
+        if (fs.existsSync("db/assort/" + trader + "/customization/")) {
+            db.user.cache["customization_" + trader] = "user/cache/customization_" + trader + ".json";
+        }
+    }
+
+    for (let locale of utility.getDirList("db/locales/")) {
+        db.user.cache["locale_" + locale] = "user/cache/locale_" + locale + ".json";
     }
 }
 
@@ -464,30 +232,14 @@ function loadorder() {
 
 function route() {
     flush();
-    items();
-    quests();
-    traders();
-    dialogues();
-    customizationOutfits();
-    customizationOffers();
-    hideoutAreas();
-    hideoutProduction();
-    hideoutScavcase();
-    templates();
-    assort();
-    weather();
-    locations();
-    bots();
-    locales();
-    images();
-    profile();
+
+    routeAll();
     others();
-    cache();
     loadorder();
 }
 
 function all() {
-    mods.detectMissing();
+    detectMissingMods();
 
     /* check if loadorder is missing */
     if (!fs.existsSync("user/cache/loadorder.json")) {
@@ -495,24 +247,31 @@ function all() {
         settings.server.rebuildCache = true;
     }
 
-    /* check if filepaths need rebuid */
-    if (mods.isRebuildRequired()) {
+    /* detect if existing mods changed */
+    if (detectChangedMods()) {
+        logger.logWarning("Mod mismatch");
+        settings.server.rebuildCache = true;
+    }
+
+    /* check if db need rebuid */
+    if (isRebuildRequired()) {
         logger.logWarning("Modlist mismatch");
         settings.server.rebuildCache = true;
     }
 
-    /* rebuild filepaths */
-    if (!fs.existsSync("user/cache/filepaths.json" || settings.server.rebuild)) {
-        logger.logWarning("Force rebuilding cache");
+    /* rebuild db */
+    if (settings.server.rebuildCache || !fs.existsSync("user/cache/db.json")) {
+        logger.logWarning("Force rebuilding routes");
         
         route();
-        mods.load();
-
+        loadAllMods();
         dump();
+
         return;
     }
 
-    filepaths = json.parse(json.read("user/cache/filepaths.json"));
+    db = json.parse(json.read("user/cache/db.json"));
+    res = json.parse(json.read("user/cache/res.json"));
 }
 
 module.exports.all = all;

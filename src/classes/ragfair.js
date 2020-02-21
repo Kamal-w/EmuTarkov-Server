@@ -64,7 +64,7 @@ function sortOffers(request, offers) {
 }
 
 function getOffers(request) {
-    let response = json.parse(json.read(filepaths.ragfair.search));
+    let response = json.parse(json.read(db.ragfair.search));
 
     if (Object.entries(request.buildItems).length != 0) {
         createOfferFromBuild(request.buildItems,response);
@@ -76,8 +76,8 @@ function getOffers(request) {
 
         for (let p1 in categorySearch) {
             for (let search in linkedSearch) {
-                if (p1 == search) {
-                    offers.push(createOffer(search, linkedSearch[search]));
+                if (p1 === search) {
+                    offers = offers.concat(createOffer(search, linkedSearch[search], request.onlyFunctional));
                 }
             }
         }
@@ -87,8 +87,8 @@ function getOffers(request) {
         let offers_tpl = getLinkedSearchList(request.linkedSearchId,response);
         let offers = [];
 
-        for (let price in offers) {
-            offers.push(createOffer(price, offers_tpl[price]));
+        for (let price in offers_tpl) {
+            offers = offers.concat(createOffer(price, offers_tpl[price], request.onlyFunctional));
         }
 
         response.data.offers = sortOffers(request, offers);
@@ -97,7 +97,7 @@ function getOffers(request) {
         let offers = [];
 
         for (let price in offers_tpl) {
-            offers.push(createOffer(price, offers_tpl[price]));
+            offers = offers.concat(createOffer(price, offers_tpl[price], request.onlyFunctional));
         }
 
         response.data.offers = sortOffers(request, offers);
@@ -116,12 +116,10 @@ function getLinkedSearchList(linkedSearchId, response) {
         for (let itemSlot of itemLink._props.Slots) {
             for (let itemSlotFilter of itemSlot._props.filters) {
                 for (let mod of itemSlotFilter.Filter) {
-                    for (let item of templates.data.Items) {
-                        if (item.Id === mod) {
-                            tableOfItems[mod] = item.Price;
-                            response.data.categories[mod] = 1;
-                        }
-                    }
+                    let item = itm_hf.getTemplateItem(mod);
+
+                    tableOfItems[mod] = item.Price;
+                    response.data.categories[mod] = 1;
                 }
             }
         }
@@ -129,15 +127,29 @@ function getLinkedSearchList(linkedSearchId, response) {
 
     if ("Chambers" in itemLink._props) {
         for (let patron of itemLink._props.Chambers[0]._props.filters[0].Filter) {
-            for (let item of templates.data.Items) {
-                if (item.Id === patron) {
-                    tableOfItems[patron] = item.Price;
-                    response.data.categories[patron] = 1;
-                }
-            }
+            let item = itm_hf.getTemplateItem(patron);
+
+            tableOfItems[patron] = item.Price;
+            response.data.categories[patron] = 1;
         }
     }
 
+    if (itemLink._props.hasOwnProperty("Cartridges")
+    && itemLink._props.Cartridges.length // it seems cartridges only has 0 or 1 element
+    && itemLink._props.Cartridges[0].hasOwnProperty("_props")
+    && itemLink._props.Cartridges[0]._props.hasOwnProperty("filters")
+    && itemLink._props.Cartridges[0]._props.filters.length // it seems filters only has 1 element
+    && itemLink._props.Cartridges[0]._props.filters[0].hasOwnProperty("Filter")) {
+        let filters = itemLink._props.Cartridges[0]._props.filters[0].Filter;
+
+        for (let filter of filters) {
+            let item = itm_hf.getTemplateItem(filter);
+
+            tableOfItems[filter] = item.Price;
+            response.data.categories[filter] = 1;
+        }
+    }
+    
     return tableOfItems;
 }
 
@@ -146,11 +158,11 @@ function getCategoryList(handbookId) {
     let isCateg = false;
 
     // if its "mods" great-parent category, do double recursive loop
-    if (handbookId == "5b5f71a686f77447ed5636ab") {
+    if (handbookId === "5b5f71a686f77447ed5636ab") {
         for (let categ2 of templates.data.Categories) {
             if (categ2.ParentId === "5b5f71a686f77447ed5636ab") {
                 for (let categ3 of templates.data.Categories) {
-                    if (categ3.ParentId == categ2.Id) {
+                    if (categ3.ParentId === categ2.Id) {
                         for (let item of templates.data.Items) {
                             if (item.ParentId === categ3.Id) {
                                 tableOfItems[item.Id] = item.Price;
@@ -190,12 +202,8 @@ function getCategoryList(handbookId) {
         if (isCateg === false) {
             for (let curItem in items.data) {
                 if (curItem === handbookId) {
-                    for (let item of templates.data.Items) {
-                        if (item.Id === handbookId) {
-                            tableOfItems[curItem] = item.Price;
-                        }
-                    }
-
+                    let item = itm_hf.getTemplateItem(handbookId);
+                    tableOfItems[curItem] = item.Price;
                     break;
                 }
             }
@@ -206,16 +214,11 @@ function getCategoryList(handbookId) {
 }
 
 function createOfferFromBuild(buildItems,response) {
-    for (var itemFromBuild in buildItems) {
+    for (let itemFromBuild in buildItems) {
         for (let curItem in items.data) {
             if (curItem === itemFromBuild) {
-                for (let item of templates.data.Items) {
-                    if (item.Id === itemFromBuild) {
-                        response.data.offers.push(createOffer(curItem, item.Price));
-                        break;
-                    }
-                }
-
+                let item = itm_hf.getTemplateItem(itemFromBuild);
+                response.data.offers = response.data.offers.concat(createOffer(curItem, item.Price, false, false));
                 break;
             }
         }
@@ -224,16 +227,50 @@ function createOfferFromBuild(buildItems,response) {
     return response
 }
 
-function createOffer(template, price) {
-    let offerBase = json.parse(json.read(filepaths.ragfair.offer));
+function createOffer(template, price, onlyFunc, usePresets = true) {
+    let offerBase = json.parse(json.read(db.ragfair.offer));
+    let offers = [];
 
-    offerBase._id = template;
-    offerBase.items[0]._tpl = template;
-    offerBase.requirements[0].count = Math.round(price * settings.gameplay.trading.ragfairMultiplier);
-	//offerBase.startTime = utility.getTimestamp() - 1000;
-    //offerBase.endTime = utility.getTimestamp() + 43200;
+    // Preset
+    if (usePresets && preset_f.itemPresets.hasPreset(template)) {
+        let presets = preset_f.itemPresets.getPresets(template);
+        
+        for (let p of presets) {
+            let offer = itm_hf.clone(offerBase);
+            let mods = p._items;
+            let rub = 0;
+            
+            for (let it of mods) {
+                // TODO handles cartridges
+                rub += itm_hf.getTemplateItem(it._tpl).Price;
+            }
+            
+            mods[0].upd = mods[0].upd || {}; // append the stack count
+            mods[0].upd.StackObjectsCount = offerBase.items[0].upd.StackObjectsCount;
 
-    return offerBase;
+            offer._id = p._id;               // The offer's id is now the preset's id
+            offer.root = mods[0]._id;        // Sets the main part of the weapon
+            offer.items = mods;
+            offer.requirements[0].count = Math.round(rub * settings.gameplay.trading.ragfairMultiplier);
+            offers.push(offer);
+        }
+    }
+
+    if (!preset_f.itemPresets.hasPreset(template) || !onlyFunc) {
+        // Single item
+        let rubPrice = Math.round(price * settings.gameplay.trading.ragfairMultiplier);
+        offerBase._id = template;
+        offerBase.items[0]._tpl = template;
+        offerBase.requirements[0].count = rubPrice;
+        offerBase.itemsCost = rubPrice;
+        offerBase.requirementsCost = rubPrice;
+        offerBase.summaryCost = rubPrice;
+        offers.push(offerBase);
+        //offerBase.startTime = utility.getTimestamp() - 1000;
+        //offerBase.endTime = utility.getTimestamp() + 43200;
+    }
+
+    return offers;
 }
 
 module.exports.getOffers = getOffers;

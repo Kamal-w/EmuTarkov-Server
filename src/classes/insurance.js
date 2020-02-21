@@ -87,12 +87,10 @@ class InsuranceServer {
     }
 
     /* sends stored insured items as message */
-    // TODO(camo1018): Send insuranceExpired/Complete messages.
-    // TODO(camo1018): Pretty sure items are messed up. Investigate and fix.
     sendInsuredItems(pmcData, sessionID) {
         for (let traderId in this.insured[sessionID]) {
             let trader = trader_f.traderServer.getTrader(traderId);
-            let dialogueTemplates = json.parse(json.read(filepaths.dialogues[traderId]));
+            let dialogueTemplates = json.parse(json.read(db.dialogues[traderId]));
             let messageContent = {
                 templateId: dialogueTemplates.insuranceStart[utility.getRandomInt(0, dialogueTemplates.insuranceStart.length - 1)],
                 type: dialogue_f.getMessageTypeValue("npcTrader")
@@ -129,12 +127,12 @@ class InsuranceServer {
     processReturn(event) {
         // Inject a little bit of a surprise by failing the insurance from time to time ;)
         if (utility.getRandomInt(0, 99) > settings.gameplay.trading.insureReturnChance) {
-            let insuranceFailedTemplates = json.parse(json.read(filepaths.dialogues[event.data.traderId])).insuranceFailed;
+            let insuranceFailedTemplates = json.parse(json.read(db.dialogues[event.data.traderId])).insuranceFailed;
             event.data.messageContent.templateId = insuranceFailedTemplates[utility.getRandomInt(0, insuranceFailedTemplates.length)];
             event.data.items = [];
         }
     
-        dialogue_f.dialogueServer.addDialogueMessage(event.data.traderId, event.data.messageContent,vevent.sessionId, event.data.items);
+        dialogue_f.dialogueServer.addDialogueMessage(event.data.traderId, event.data.messageContent, event.sessionId, event.data.items);
     }
 }
 
@@ -149,8 +147,7 @@ function cost(info, sessionID) {
         for (let key of info.items) {
             for (let item of pmcData.Inventory.items) {
                 if (item._id === key) {
-                    let template = json.parse(json.read(filepaths.templates.items[item._tpl]));
-
+                    let template = json.parse(json.read(db.templates.items[item._tpl]));
                     items[template.Id] = Math.round(template.Price * settings.gameplay.trading.insureMultiplier);
                     break;
                 }
@@ -171,12 +168,8 @@ function insure(pmcData, body, sessionID) {
     for (let key of body.items) {
         for (let item of pmcData.Inventory.items) {
             if (item._id === key) {
-                let template = json.parse(json.read(filepaths.templates.items[item._tpl]));
-
-                itemsToPay.push({
-                    "id": item._id,
-                    "count": Math.round(template.Price * settings.gameplay.trading.insureMultiplier)
-                });
+                let template = json.parse(json.read(db.templates.items[item._tpl]));
+                itemsToPay.push({"id": item._id, "count": Math.round(template.Price * settings.gameplay.trading.insureMultiplier)});
                 break;
             }
         }
@@ -203,3 +196,4 @@ function insure(pmcData, body, sessionID) {
 
 module.exports.insuranceServer = new InsuranceServer();
 module.exports.cost = cost;
+module.exports.insure = insure;

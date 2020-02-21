@@ -239,13 +239,8 @@ function getMoney(pmcData, amount, body, output, sessionID) {
     let tmpTraderInfo = trader_f.traderServer.getTrader(body.tid, sessionID);
     let currency = getCurrency(tmpTraderInfo.data.currency);
     let calcAmount = fromRUB(inRUB(amount, currency), currency);
+    let maxStackSize = (json.parse(json.read(db.items[currency])))._props.StackMaxSize;
     let skip = false;
-    let maxStackSize = 50000;
-
-    // adjust maxStackSize for RUN
-    if (currency === "5449016a4bdc2d6f028b456f") {
-        maxStackSize = 500000;
-    }
 
     for (let item of pmcData.Inventory.items) {
         // item is not currency
@@ -258,7 +253,6 @@ function getMoney(pmcData, amount, body, output, sessionID) {
             continue;
         }
 
-        // too much money for a stack
         if (item.upd.StackObjectsCount + calcAmount > maxStackSize) {
             // calculate difference
             let tmp = item.upd.StackObjectsCount;
@@ -314,7 +308,7 @@ function getMoney(pmcData, amount, body, output, sessionID) {
     }
 
     // set current sale sum
-    let saleSum = pmcData.TraderStandings[body.tid].currentSalesSum += amount;
+    let saleSum = pmcData.TraderStandings[body.tid].currentSalesSum + amount;
 
     pmcData.TraderStandings[body.tid].currentSalesSum = saleSum;
     trader_f.traderServer.lvlUp(body.tid, sessionID);
@@ -496,6 +490,23 @@ function isDogtag(itemId) {
     return itemId === "59f32bb586f774757e1e8442" || itemId === "59f32c3b86f77472a31742f0" ? true : false;
 }
 
+function isNotSellable(itemid) {
+    let items = [
+        "544901bf4bdc2ddf018b456d", //wad of rubles
+        "5449016a4bdc2d6f028b456f", // rubles
+        "569668774bdc2da2298b4568", // euros
+        "5696686a4bdc2da3298b456a" // dolars
+    ];
+
+    for (let tpl of items) {
+        if (itemid === tpl) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /* Gets the identifier for a child using slotId, locationX and locationY. */
 function getChildId(item) {
     if (!("location" in item)) {
@@ -590,6 +601,20 @@ function replaceIDs(pmcData, items) {
     return items;
 }
 
+//TODO change templates.data.Items to a dictionary to avoid all those loops
+function getTemplateItem(templateId) {
+    for (let template of templates.data.Items) {
+        if (template.Id === templateId) {
+            return template;
+        }
+    }
+    return false;
+}
+
+function clone(x) {
+    return json.parse(json.stringify(x));
+}
+
 module.exports.recheckInventoryFreeSpace = recheckInventoryFreeSpace;
 module.exports.getCurrency = getCurrency;
 module.exports.inRUB = inRUB;
@@ -603,4 +628,7 @@ module.exports.getSize = getSize;
 module.exports.findAndReturnChildren = findAndReturnChildren;
 module.exports.findAndReturnChildrenByItems = findAndReturnChildrenByItems;
 module.exports.isDogtag = isDogtag;
+module.exports.isNotSellable = isNotSellable;
 module.exports.replaceIDs = replaceIDs;
+module.exports.getTemplateItem = getTemplateItem;
+module.exports.clone = clone;

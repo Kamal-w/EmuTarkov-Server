@@ -19,6 +19,12 @@ class HealthServer {
             "LeftLeg": 0,
             "RightLeg": 0
         };
+
+        return this.healths[sessionID];
+    }
+
+    setHealth(sessionID) {
+        return this.health[sessionID] || this.initializeHealth(sessionID);
     }
 
     offraidHeal(pmcData, body, sessionID) {
@@ -54,8 +60,8 @@ class HealthServer {
     offraidEat(pmcData, body, sessionID) {        
         let output = item_f.itemServer.getOutput();
         let todelete = false;
-        let maxResource = undefined;
-        let effects = undefined;
+        let maxResource = {};
+        let effects = {};
     
         for (let item of pmcData.Inventory.items) {
             if (item._id === body.item) {
@@ -79,7 +85,7 @@ class HealthServer {
         if (maxResource === 1 || todelete === true) {
             output = move_f.removeItem(pmcData, body.item, output, sessionID);
         }
-
+        
         this.healths[sessionID].Hydration += effects.hydration.value;
         this.healths[sessionID].Energy += effects.energy.value;
         this.applyHealth(pmcData, sessionID);
@@ -99,7 +105,7 @@ class HealthServer {
     
             /* difference is already applies */
             case "HealthChanged":
-                node[info.item] = info.value;
+                node[info.bodyPart] = info.value;
                 break;
     
             /* store state and make server aware to kill all body parts */

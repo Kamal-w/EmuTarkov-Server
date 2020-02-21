@@ -83,7 +83,7 @@ class DialogueServer {
 
 			for (let reward of rewards) {
 				reward._id = utility.generateNewItemId();
-				if (reward.slotId === "hideout") {
+				if (!reward.hasOwnProperty("slotId") || reward.slotId === "hideout") {
 					reward.parentId = stashId;
 					reward.slotId = "main";
 				}
@@ -169,7 +169,7 @@ class DialogueServer {
 }
 
 function getPath(sessionID) {
-    let path = filepaths.user.profiles.dialogue;
+    let path = db.user.profiles.dialogue;
     return path.replace("__REPLACEME__", sessionID);
 }
 

@@ -1,8 +1,8 @@
 "use strict";
 
-const hideoutAreas = json.parse(json.read(filepaths.user.cache.hideout_areas));
-const hideoutProduction = json.parse(json.read(filepaths.user.cache.hideout_production));
-const hideoutScavcase = json.parse(json.read(filepaths.user.cache.hideout_scavcase));
+const hideoutAreas = json.parse(json.read(db.user.cache.hideout_areas));
+const hideoutProduction = json.parse(json.read(db.user.cache.hideout_production));
+const hideoutScavcase = json.parse(json.read(db.user.cache.hideout_scavcase));
 
 function HideoutUpgrade(pmcData, body, sessionID) {
 	for (let itemToPay of body.items) {
@@ -120,7 +120,7 @@ function HideoutTakeItemsFromAreaSlots(pmcData, body, sessionID) {
 
 		newReq.item_id = pmcData.Hideout.Areas[area].slots[0].item[0]._tpl;
 		newReq.count = 1;
-		newReq.tid = "ragfair";
+		newReq.tid = "54cb57776803fa99248b456e";
 		
 		output = move_f.addItem(pmcData, newReq, output, sessionID);
 		
@@ -162,7 +162,7 @@ function HideoutScavCaseProductionStart(pmcData, body, sessionID) {
 		}
 	}
 
-	let hideoutScavcase = json.parse(json.read(filepaths.user.cache.hideout_scavcase));
+	let hideoutScavcase = json.parse(json.read(db.user.cache.hideout_scavcase));
 
 	for (let receipe in hideoutScavcase.data) {	
 		if (body.recipeId == hideoutScavcase.data[receipe]._id) {
@@ -228,11 +228,16 @@ function HideoutTakeProduction(pmcData, body, sessionID) {
 		}
 
 		// create item and throw it into profile
+        let id = hideoutProduction.data[receipe].endProduct;
+        if (preset_f.itemPresets.hasPreset(id)) {
+            // replace the base item with its main preset
+            id = preset_f.itemPresets.getStandardPreset(id)._id;
+        }
 		let newReq = {};
 
-		newReq.item_id = hideoutProduction.data[receipe].endProduct;
+		newReq.item_id = id
 		newReq.count = hideoutProduction.data[receipe].count;
-		newReq.tid = "ragfair";
+		newReq.tid = "54cb57776803fa99248b456e";
 		return move_f.addItem(pmcData, newReq, output, sessionID, true);	
 	}
 
@@ -253,7 +258,7 @@ function HideoutTakeProduction(pmcData, body, sessionID) {
 				pmcData = profile_f.profileServer.getPmcProfile(sessionID);
 				newReq.item_id = itemProd._tpl;
 				newReq.count = 1;
-				newReq.tid = "ragfair";
+				newReq.tid = "54cb57776803fa99248b456e";
 
 				output = move_f.addItem(pmcData, newReq, output, sessionID, true);
 			}

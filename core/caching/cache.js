@@ -18,7 +18,6 @@ function genericCacher(cachename, filepathNode, output = "") {
         switch (cachename) {
             case "quests.json":
             case "traders.json":
-            case "customization_offers.json":
             case "hideout_areas.json":
             case "hideout_production.json":
             case "hideout_scavcase.json":
@@ -31,7 +30,7 @@ function genericCacher(cachename, filepathNode, output = "") {
                 base.data[fileName] = fileData;
             break;
 
-            case "customization_outfits.json":
+            case "customization.json":
                 fileName = inputNames[i++];
                 base.data[fileName] = fileData;
             break;
@@ -43,23 +42,18 @@ function genericCacher(cachename, filepathNode, output = "") {
 }
 
 function items() {
-    genericCacher("items.json", filepaths.items);
+    genericCacher("items.json", db.items);
 }
 
 function quests() {
-    genericCacher("quests.json", filepaths.quests);
+    genericCacher("quests.json", db.quests);
 }
 
 function languages() {
     let base = json.parse(json.read("db/cache/languages.json"));
-    let inputFiles = filepaths.locales;
-    let inputNames = Object.keys(inputFiles);
-    let i = 0;
 
-    for (let file in inputFiles) {
-        let locale = filepaths.locales[inputNames[i++]];
-        let fileData = json.parse(json.read(locale.name));
-        
+    for (let file of Object.keys(db.locales)) {
+        let fileData = json.parse(json.read(db.locales[file][file]));
         base.data.push(fileData);
     }
 
@@ -67,28 +61,24 @@ function languages() {
     json.write("user/cache/languages.json", base);
 }
 
-function customizationOutfits() {
-    genericCacher("customization_outfits.json", filepaths.customization.outfits);
-}
-
-function customizationOffers() {
-    genericCacher("customization_offers.json", filepaths.customization.offers);
+function customization() {
+    genericCacher("customization.json", db.customization);
 }
 
 function hideoutAreas() {
-    genericCacher("hideout_areas.json", filepaths.hideout.areas);
+    genericCacher("hideout_areas.json", db.hideout.areas);
 }
 
 function hideoutProduction() {
-    genericCacher("hideout_production.json", filepaths.hideout.production);
+    genericCacher("hideout_production.json", db.hideout.production);
 }
 
 function hideoutScavcase() {
-    genericCacher("hideout_scavcase.json", filepaths.hideout.scavcase);
+    genericCacher("hideout_scavcase.json", db.hideout.scavcase);
 }
 
 function weather() {
-    genericCacher("weather.json", filepaths.weather);
+    genericCacher("weather.json", db.weather);
 }
 
 function templates() {
@@ -101,7 +91,7 @@ function templates() {
     ];
 
     for (let path in inputDir) {
-        let inputFiles = filepaths.templates[inputDir[path]];
+        let inputFiles = db.templates[inputDir[path]];
 
         for (let file in inputFiles) {
             let filePath = inputFiles[file];
@@ -123,7 +113,7 @@ function assorts(trader) {
     logger.logInfo("Caching: assort_" + trader + ".json");
 
     let base = json.parse(json.read("db/cache/assort.json"));
-    let inputNode = filepaths.assort[trader];
+    let inputNode = db.assort[trader];
     let inputDir = [
         "items",
         "barter_scheme",
@@ -156,7 +146,7 @@ function assorts(trader) {
 
 function locales(locale) {
     let base = json.parse(json.read("db/cache/locale.json"));
-    let inputNode = filepaths.locales[locale];
+    let inputNode = db.locales[locale];
     let inputDir = [
         "mail",
         "quest",
@@ -217,8 +207,8 @@ function mod() {
 
 function all() {
     let force = settings.server.rebuildCache;
-    let assortList = Object.keys(filepaths.assort);
-    let localesList = Object.keys(filepaths.locales);
+    let assortList = Object.keys(db.assort);
+    let localesList = Object.keys(db.locales);
 
     // generate cache
     if (force || !fs.existsSync("user/cache/items.json")) {
@@ -233,12 +223,8 @@ function all() {
         languages();
     }
 
-    if (force || !fs.existsSync("user/cache/customization_outfits.json")) {
-        customizationOutfits();
-    }
-
-    if (force || !fs.existsSync("user/cache/customization_offers.json")) {
-        customizationOffers();
+    if (force || !fs.existsSync("user/cache/customization.json")) {
+        customization();
     }
 
     if (force || !fs.existsSync("user/cache/hideout_areas.json")) {

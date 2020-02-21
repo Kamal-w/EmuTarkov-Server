@@ -1,7 +1,7 @@
 "use strict";
 
-function getCustomization(info) {
-    return json.stringify(customizationOutfits);
+function getCustomization(url, info, sessionID) {
+    return json.stringify(customization_f.getCustomization());
 }
 
 function getCustomizationStorage(url, info, sessionID) {

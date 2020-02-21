@@ -6,8 +6,8 @@
 	"Name": "Customs",
 	"Description": "Very Big Map",
 	"Scene": {
-		"path": "maps/customs_preset.bundle",
-		"rcid": "bigmap.scenespreset.asset"
+	  "path": "maps/customs_preset.bundle",
+	  "rcid": "bigmap.scenespreset.asset"
 	},
 	"Area": 0,
 	"RequiredPlayerLevel": 0,
@@ -19,8 +19,8 @@
 	"exit_access_time": 60,
 	"exit_time": 1,
 	"Preview": {
-		"path": "",
-		"rcid": ""
+	  "path": "",
+	  "rcid": ""
 	},
 	"IconX": 456,
 	"IconY": 443,
@@ -61,85 +61,85 @@
 	"DisabledScavExits": "",
 	"AccessKeys": [],
 	"MinMaxBots": [
-		{
-			"min": 2,
-			"max": 10,
-			"WildSpawnType": "marksman"
-		}
+	  {
+		"min": 2,
+		"max": 10,
+		"WildSpawnType": "marksman"
+	  }
 	],
 	"BotLocationModifier": {
-		"AccuracySpeed": 0.9,
-		"Scattering": 0.9,
-		"GainSight": 0.8,
-		"MarksmanAccuratyCoef": 1,
-		"VisibleDistance": 1,
-		"DistToActivate": 255,
-		"DistToSleep": 300,
-		"MagnetPower": 44
+	  "AccuracySpeed": 0.9,
+	  "Scattering": 0.9,
+	  "GainSight": 0.8,
+	  "MarksmanAccuratyCoef": 1,
+	  "VisibleDistance": 1,
+	  "DistToActivate": 255,
+	  "DistToSleep": 300,
+	  "MagnetPower": 44
 	},
 	"exits": [],
 	"DisabledForScav": false,
 	"BossLocationSpawn": [],
 	"Id": "bigmap",
 	"_Id": "56f40101d2720b2a4d8b45d6",
-	"Loot": [],
 	"SpawnAreas": [],
+	"Loot": [],
 	"Banners": [
-		{
-			"id": "5464e0404bdc2d2a708b4567",
-			"pic": {
-				"path": "CONTENT/banners/banner_usec.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5464e0454bdc2d06708b4567",
-			"pic": {
-				"path": "CONTENT/banners/banner_bear.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5803a58524597710ca36fcb2",
-			"pic": {
-				"path": "CONTENT/banners/banner_terragroup.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807bfe124597742a92e0a4c",
-			"pic": {
-				"path": "CONTENT/banners/norvinskzone.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807c3f124597746bf2db2ce",
-			"pic": {
-				"path": "CONTENT/banners/banner_scav.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5807be8924597742c603fa19",
-			"pic": {
-				"path": "CONTENT/banners/banner_tarkov.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5805f617245977100b2c1f41",
-			"pic": {
-				"path": "CONTENT/banners/tglabs.jpg",
-				"rcid": ""
-			}
-		},
-		{
-			"id": "5c1b857086f77465f465faa4",
-			"pic": {
-				"path": "CONTENT/banners/banner_scavraider.jpg",
-				"rcid": ""
-			}
+	  {
+		"id": "5464e0404bdc2d2a708b4567",
+		"pic": {
+		  "path": "CONTENT/banners/banner_usec.jpg",
+		  "rcid": ""
 		}
+	  },
+	  {
+		"id": "5464e0454bdc2d06708b4567",
+		"pic": {
+		  "path": "CONTENT/banners/banner_bear.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5803a58524597710ca36fcb2",
+		"pic": {
+		  "path": "CONTENT/banners/banner_terragroup.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807bfe124597742a92e0a4c",
+		"pic": {
+		  "path": "CONTENT/banners/norvinskzone.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807c3f124597746bf2db2ce",
+		"pic": {
+		  "path": "CONTENT/banners/banner_scav.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5807be8924597742c603fa19",
+		"pic": {
+		  "path": "CONTENT/banners/banner_tarkov.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5805f617245977100b2c1f41",
+		"pic": {
+		  "path": "CONTENT/banners/tglabs.jpg",
+		  "rcid": ""
+		}
+	  },
+	  {
+		"id": "5c1b857086f77465f465faa4",
+		"pic": {
+		  "path": "CONTENT/banners/banner_scavraider.jpg",
+		  "rcid": ""
+		}
+	  }
 	]
-}
+  }

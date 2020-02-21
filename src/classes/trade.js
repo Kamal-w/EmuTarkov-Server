@@ -7,10 +7,6 @@ function buyItem(pmcData, body, sessionID) {
     }
 
     logger.logSuccess("Bought item: " + body.item_id);
-
-    if (body.tid === "579dc571d53a0658a154fbec") {
-        body.tid = "ragfair";
-    }
     
     return move_f.addItem(pmcData, body, item_f.itemServer.getOutput(), sessionID);
 }
@@ -18,18 +14,14 @@ function buyItem(pmcData, body, sessionID) {
 // Selling item to trader
 function sellItem(pmcData, body, sessionID) {
     let money = 0;
-    let prices = json.parse(profile_f.getPurchasesData(body.tid, sessionID));
+    let prices = trader_f.getPurchasesData(body.tid, sessionID);
     let output = item_f.itemServer.getOutput();
 
-    // find the items to sell
-    for (let i in body.items) {
-        // print item trying to sell
-        logger.logInfo("selling item" + json.stringify(body.items[i]));
-
-        // profile inventory, look into it if item exist
+    for (let sellItem of body.items) {
         for (let item of pmcData.Inventory.items) {
-            let isThereSpace = body.items[i].id.search(" ");
-            let checkID = body.items[i].id;
+            // profile inventory, look into it if item exist
+            let isThereSpace = sellItem.id.search(" ");
+            let checkID = sellItem.id;
 
             if (isThereSpace !== -1) {
                 checkID = checkID.substr(0, isThereSpace);
@@ -44,20 +36,18 @@ function sellItem(pmcData, body, sessionID) {
                 output = move_f.removeItem(pmcData, checkID, output, sessionID);
 
                 // add money to return to the player
-                let price_money = prices.data[item._id][0][0].count;
-
-                if (output !== "BAD") {
-                    money += price_money;
-                } else {
-                    return "";
+                if (output !== "") {
+                    money += parseInt(prices[item._id][0][0].count);
+                    break;
                 }
+
+                return "";
             }
         }
     }
 
-    // get money the item
-    output = itm_hf.getMoney(pmcData, money, body, output, sessionID);
-    return output;
+    // get money the item]
+    return itm_hf.getMoney(pmcData, money, body, output, sessionID);
 }
 
 // separate is that selling or buying
@@ -85,7 +75,7 @@ function confirmRagfairTrading(pmcData, body, sessionID) {
         body = {};
         body.Action = "TradingConfirm";
         body.type = "buy_from_trader";
-        body.tid = "ragfair";
+        body.tid = "54cb57776803fa99248b456e";
         body.item_id = offer.id;
         body.count = offer.count;
         body.scheme_id = 0;

@@ -13,30 +13,30 @@ const fs = require('fs');
 
 class ScheduledEventHandler {
 	constructor(scheduleIntervalMillis) {
-		this.events = {};
+		this.eventCallbacks = {};
 
 		this.loadSchedule();
 		
 		setInterval(() => {
 			this.processSchedule();
-		}, scheduleIntervalMillis);
+		}, scheduleIntervalMillis * 1000);
 	}
 
 	addEvent(type, worker) {
-		this.events[type] = worker;
+		this.eventCallbacks[type] = worker;
 	}
 
 	saveToDisk() {
-		json.write(filepaths.user.events_schedule, this.scheduledEvents);
+		json.write(db.user.events_schedule, this.scheduledEvents);
 	}
 
 	loadSchedule() {
-		if (!fs.existsSync(filepaths.user.events_schedule)) {
+		if (!fs.existsSync(db.user.events_schedule)) {
 			this.scheduledEvents = [];
 			return;
 		}
 
-		this.scheduledEvents = json.parse(json.read(filepaths.user.events_schedule));
+		this.scheduledEvents = json.parse(json.read(db.user.events_schedule));
 	}
 
 	processSchedule() {
@@ -46,9 +46,8 @@ class ScheduledEventHandler {
 			let event = this.scheduledEvents.shift();
 
 			if (event.scheduledTime < now) {
-				processEvent(event);
+				this.processEvent(event);
 				continue;
-
 			}
 			
 			// The schedule is assumed to be sorted based on scheduledTime, so once we
@@ -61,6 +60,12 @@ class ScheduledEventHandler {
 	addToSchedule(event) {
 		this.scheduledEvents.push(event);
 		this.scheduledEvents.sort(compareEvent);
+	}
+
+	processEvent(event) {
+		if (event.type in this.eventCallbacks) {
+			this.eventCallbacks[event.type](event);
+		}
 	}
 }
 
@@ -77,10 +82,4 @@ function compareEvent(a, b) {
 	return 0;
 }
 
-function processEvent(event) {
-	if (event.type in this.events) {
-		output = this.events[event.type](event);
-	}
-}
-
-module.exports.scheduledEventHandler = new ScheduledEventHandler(settings.server.eventPollIntervalSec * 1000);
+module.exports.scheduledEventHandler = new ScheduledEventHandler(settings.server.eventPollIntervalSec);
